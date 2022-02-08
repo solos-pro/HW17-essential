@@ -68,7 +68,8 @@ movie_ns = api.namespace('movies')
 director_ns = api.namespace('directors')
 genre_ns = api.namespace('genres')
 
-@movie_ns.route('')
+
+@movie_ns.route('/')
 class MoviesView(Resource):
     def get(self):
         director_id = request.args.get('director_id')
@@ -86,7 +87,6 @@ class MoviesView(Resource):
 
     def post(self):
         r_json = request.json
-        print(r_json)
         add_movie = Movie(**r_json)
         with db.session.begin():
             db.session.add(add_movie)
@@ -101,7 +101,23 @@ class MovieView(Resource):
             return "", 404
         return movie_schema.dump(movie)
 
-    def delete(self, uid):
+    def put(self, uid):
+        movie = Movie.query.get(uid)
+        if not movie:
+            return "", 404
+
+        movie.title = request.json.get("title")
+        movie.description = request.json.get("description")
+        movie.trailer = request.json.get("trailer")
+        movie.year = request.json.get("year")
+        movie.rating = request.json.get("rating")
+        movie.genre_id = request.json.get("genre_id")
+        movie.director_id = request.json.get("director_id")
+        db.session.add(movie)
+        db.session.commit()
+        return "", 204
+
+    def delete(self):
         movie = Movie.query.get(uid)
         if not movie:
             return "", 404
@@ -109,6 +125,8 @@ class MovieView(Resource):
         db.session.commit()
         return "", 204
 
+
+# ------------------------------------------------------------------
 
 
 if __name__ == '__main__':
