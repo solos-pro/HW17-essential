@@ -11,6 +11,33 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
 
+class Director(db.Model):
+    __tablename__ = 'director'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(255))
+
+
+class DirectorSchema(Schema):
+    id = fields.Int()
+    name = fields.Str()
+
+
+class Genre(db.Model):
+    __tablename__ = 'genre'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(255))
+    # genre = db.relationship('Movie', backref='genre', lazy=True)
+    #
+    # def __repr__(self):
+    #     return '<Genre %r>' % self.name
+
+
+class GenreSchema(Schema):
+    id = fields.Int()
+    name = fields.Str()
+    # genre = fields.Str()
+
+
 class Movie(db.Model):
     __tablename__ = 'movie'
     id = db.Column(db.Integer, primary_key=True)
@@ -19,10 +46,13 @@ class Movie(db.Model):
     trailer = db.Column(db.String(255))
     year = db.Column(db.Integer)
     rating = db.Column(db.Float)
-    genre_id = db.Column(db.Integer, db.ForeignKey("genre.id"))
-    genre = db.relationship("Genre")
-    director_id = db.Column(db.Integer, db.ForeignKey("director.id"))
-    director = db.relationship("Director")
+    genre_id = db.Column(db.Integer, db.ForeignKey('genre.id'))
+    # genre = db.relationship('Genre')
+    director_id = db.Column(db.Integer, db.ForeignKey('director.id'))
+    # director = db.relationship('Director')
+
+    def __repr__(self):
+        return '<Movie %r>' % self.name
 
 
 class MovieSchema(Schema):
@@ -32,30 +62,11 @@ class MovieSchema(Schema):
     trailer = fields.Str()
     year = fields.Int()
     rating = fields.Float()
-    genre_id = fields.Int()
-    director_id = fields.Int()
-
-
-class Director(db.Model):
-    __tablename__ = 'director'
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(255))
-
-
-class DirectorSchema(Schema):
-    id = fields.Int()
-    title = fields.Str()
-
-
-class Genre(db.Model):
-    __tablename__ = 'genre'
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(255))
-
-
-class GenreSchema(Schema):
-    id = fields.Int()
-    title = fields.Str()
+    genre_id = fields.Str()
+    # Movie.genre = fields.Str()
+    director_id = fields.Str()
+# q1 = Movie.query.get(1)                               ###
+# print(q1.director)
 
 
 movie_schema = MovieSchema()
@@ -117,7 +128,7 @@ class MovieView(Resource):
         db.session.commit()
         return "", 204
 
-    def delete(self):
+    def delete(self, uid):
         movie = Movie.query.get(uid)
         if not movie:
             return "", 404
@@ -127,6 +138,51 @@ class MovieView(Resource):
 
 
 # ------------------------------------------------------------------
+
+
+@genre_ns.route('/')
+class GenresView(Resource):
+    def get(self):
+        genre_id = request.args.get('genre_id')
+        res = Genre.query
+        if genre_id is not None:
+            res = res.filter(Genre.id == genre_id)
+        result = res.all()
+        return genre_schema.dump(result, many=True)
+
+    def post(self):
+        r_json = request.json
+        add_genre = Genre(**r_json)
+        with db.session.begin():
+            db.session.add(add_genre)
+        return "", 201
+
+
+@genre_ns.route('/<int:uid>')
+class GenreView(Resource):
+    def get(self, uid):
+        genre = Genre.query.get(uid)
+        if not genre:
+            return "", 404
+        return genre_schema.dump(genre)
+
+    def put(self, uid):
+        genre = Genre.query.get(uid)
+        if not genre:
+            return "", 404
+
+        genre.title = request.json.get("genre_id")
+        db.session.add(genre)
+        db.session.commit()
+        return "", 204
+
+    def delete(self, uid):
+        genre = Genre.query.get(uid)
+        if not genre:
+            return "", 404
+        db.session.delete(genre)
+        db.session.commit()
+        return "", 204
 
 
 if __name__ == '__main__':
