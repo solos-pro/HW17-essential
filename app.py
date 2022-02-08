@@ -57,8 +57,10 @@ class GenreSchema(Schema):
     id = fields.Int()
     title = fields.Str()
 
+
 movie_schema = MovieSchema()
-movies_schema = MovieSchema(many=True)
+genre_schema = GenreSchema()
+direct_schema = DirectorSchema()
 
 api = Api(app)
 
@@ -67,7 +69,7 @@ director_ns = api.namespace('directors')
 genre_ns = api.namespace('genres')
 
 @movie_ns.route('')
-class MovieView(Resource):
+class MoviesView(Resource):
     def get(self):
         director_id = request.args.get('director_id')
         genre_id = request.args.get('genre_id')
@@ -80,7 +82,7 @@ class MovieView(Resource):
             res = res.filter(Movie.genre_id == genre_id, Movie.director_id == director_id)
         result = res.all()
 
-        return movies_schema.dump(result)
+        return movie_schema.dump(result, many=True)
 
     def post(self):
         r_json = request.json
@@ -89,6 +91,24 @@ class MovieView(Resource):
         with db.session.begin():
             db.session.add(add_movie)
         return "", 201
+
+
+@movie_ns.route('/<int:uid>')
+class MovieView(Resource):
+    def get(self, uid):
+        movie = Movie.query.get(uid)
+        if not movie:
+            return "", 404
+        return movie_schema.dump(movie)
+
+    def delete(self, uid):
+        movie = Movie.query.get(uid)
+        if not movie:
+            return "", 404
+        db.session.delete(movie)
+        db.session.commit()
+        return "", 204
+
 
 
 if __name__ == '__main__':
