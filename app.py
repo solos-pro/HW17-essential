@@ -26,7 +26,7 @@ class Genre(db.Model):
     __tablename__ = 'genre'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(255))
-    # genre = db.relationship('Movie', backref='genre', lazy=True)
+    movies = db.relationship('Movie')
     #
     # def __repr__(self):
     #     return '<Genre %r>' % self.name
@@ -35,7 +35,7 @@ class Genre(db.Model):
 class GenreSchema(Schema):
     id = fields.Int()
     name = fields.Str()
-    # genre = fields.Str()
+    # movies = fields.Str()
 
 
 class Movie(db.Model):
@@ -47,7 +47,7 @@ class Movie(db.Model):
     year = db.Column(db.Integer)
     rating = db.Column(db.Float)
     genre_id = db.Column(db.Integer, db.ForeignKey('genre.id'))
-    # genre = db.relationship('Genre')
+    genre = db.relationship('Genre')
     director_id = db.Column(db.Integer, db.ForeignKey('director.id'))
     # director = db.relationship('Director')
 
@@ -63,7 +63,7 @@ class MovieSchema(Schema):
     year = fields.Int()
     rating = fields.Float()
     genre_id = fields.Str()
-    # Movie.genre = fields.Str()
+    genre = fields.Str()
     director_id = fields.Str()
 # q1 = Movie.query.get(1)                               ###
 # print(q1.director)
@@ -94,7 +94,7 @@ class MoviesView(Resource):
             res = res.filter(Movie.genre_id == genre_id, Movie.director_id == director_id)
         result = res.all()
 
-        return movie_schema.dump(result, many=True)
+        return movie_schema.dump(result, many=True), 200
 
     def post(self):
         r_json = request.json
@@ -135,20 +135,18 @@ class MovieView(Resource):
         db.session.delete(movie)
         db.session.commit()
         return "", 204
-
-
 # ------------------------------------------------------------------
 
 
 @genre_ns.route('/')
 class GenresView(Resource):
     def get(self):
-        genre_id = request.args.get('genre_id')
+        genre_id = request.args.get('name')
         res = Genre.query
         if genre_id is not None:
             res = res.filter(Genre.id == genre_id)
         result = res.all()
-        return genre_schema.dump(result, many=True)
+        return genre_schema.dump(result, many=True), 200
 
     def post(self):
         r_json = request.json
@@ -171,7 +169,7 @@ class GenreView(Resource):
         if not genre:
             return "", 404
 
-        genre.title = request.json.get("genre_id")
+        genre.name = request.json.get("name")
         db.session.add(genre)
         db.session.commit()
         return "", 204
@@ -181,6 +179,52 @@ class GenreView(Resource):
         if not genre:
             return "", 404
         db.session.delete(genre)
+        db.session.commit()
+        return "", 204
+# ------------------------------------------------------------------
+
+
+@director_ns.route('/')
+class DirectorsView(Resource):
+    def get(self):
+        director_name = request.args.get('name')
+        res = Director.query
+        if director_name is not None:
+            res = res.filter(Director.name == director_name)
+        result = res.all()
+        return direct_schema.dump(result, many=True), 200
+
+    def post(self):
+        r_json = request.json
+        add_director = Director(**r_json)
+        with db.session.begin():
+            db.session.add(add_director)
+        return "", 201
+
+
+@director_ns.route('/<int:uid>')
+class DirectorView(Resource):
+    def get(self, uid):
+        director = Director.query.get(uid)
+        if not director:
+            return "", 404
+        return direct_schema.dump(director)
+
+    def put(self, uid):
+        director = Director.query.get(uid)
+        if not director:
+            return "", 404
+
+        director.name = request.json.get("name")
+        db.session.add(director)
+        db.session.commit()
+        return "", 204
+
+    def delete(self, uid):
+        director = Director.query.get(uid)
+        if not director:
+            return "", 404
+        db.session.delete(director)
         db.session.commit()
         return "", 204
 
