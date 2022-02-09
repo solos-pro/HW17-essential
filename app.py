@@ -1,9 +1,8 @@
-# app.py
 
 from flask import Flask, request
 from flask_restx import Api, Resource
 from flask_sqlalchemy import SQLAlchemy
-from marshmallow import Schema, fields
+from models import *
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///test.db'
@@ -17,25 +16,10 @@ class Director(db.Model):
     name = db.Column(db.String(255))
 
 
-class DirectorSchema(Schema):
-    id = fields.Int()
-    name = fields.Str()
-
-
 class Genre(db.Model):
     __tablename__ = 'genre'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(255))
-    movies = db.relationship('Movie')
-    #
-    # def __repr__(self):
-    #     return '<Genre %r>' % self.name
-
-
-class GenreSchema(Schema):
-    id = fields.Int()
-    name = fields.Str()
-    # movies = fields.Str()
 
 
 class Movie(db.Model):
@@ -55,20 +39,6 @@ class Movie(db.Model):
         return '<Movie %r>' % self.name
 
 
-class MovieSchema(Schema):
-    id = fields.Int()
-    title = fields.Str()
-    description = fields.Str()
-    trailer = fields.Str()
-    year = fields.Int()
-    rating = fields.Float()
-    genre_id = fields.Str()
-    genre = fields.Str()
-    director_id = fields.Str()
-# q1 = Movie.query.get(1)                               ###
-# print(q1.director)
-
-
 movie_schema = MovieSchema()
 genre_schema = GenreSchema()
 direct_schema = DirectorSchema()
@@ -86,6 +56,8 @@ class MoviesView(Resource):
         director_id = request.args.get('director_id')
         genre_id = request.args.get('genre_id')
         res = Movie.query
+        # res = Movie.query.join(Genre).with_entities(Genre.name, Movie.title, Movie.genre)
+        # print(res)
         if director_id is not None:
             res = res.filter(Movie.director_id == director_id)
         if genre_id is not None:
