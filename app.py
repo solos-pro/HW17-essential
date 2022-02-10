@@ -82,7 +82,8 @@ class MovieView(Resource):
     def get(self, uid):
         # movie = Movie.query.get(uid)
         movie = db.session.query(Movie.id, Movie.title, Movie.description, Movie.trailer, Movie.year, Movie.rating,
-                                 Movie.director_id, Genre.name).join(Genre).filter(Movie.id == uid).all()
+                                 Movie.director_id, Genre.name.label("genre"),
+                                 Director.name.label("director")).join(Genre).join(Director).filter(Movie.id == uid).all()
         if not movie:
             return "", 404
         return movie_schema.dump(movie, many=True)
