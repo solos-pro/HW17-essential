@@ -14,10 +14,10 @@ class GenreSchema(Schema):
 class MovieSchema(Schema):
     id = fields.Int()
     title = fields.Str()
+    name = fields.Str()
     description = fields.Str()
     trailer = fields.Str()
     year = fields.Int()
     rating = fields.Float()
-    genre_id = fields.Str()
-    genre = fields.Str()
+    # genre_id = fields.Str()
     director_id = fields.Str()

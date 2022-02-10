@@ -20,6 +20,7 @@ class Genre(db.Model):
     __tablename__ = 'genre'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(255))
+    # movies = db.relationship('Movie')
 
 
 class Movie(db.Model):
@@ -33,10 +34,10 @@ class Movie(db.Model):
     genre_id = db.Column(db.Integer, db.ForeignKey('genre.id'))
     genre = db.relationship('Genre')
     director_id = db.Column(db.Integer, db.ForeignKey('director.id'))
-    # director = db.relationship('Director')
+    director = db.relationship('Director')
 
-    def __repr__(self):
-        return '<Movie %r>' % self.name
+    # def __repr__(self):
+    #     return '<Movie %r>' % self.genre
 
 
 movie_schema = MovieSchema()
@@ -55,9 +56,9 @@ class MoviesView(Resource):
     def get(self):
         director_id = request.args.get('director_id')
         genre_id = request.args.get('genre_id')
-        res = Movie.query
-        # res = Movie.query.join(Genre).with_entities(Genre.name, Movie.title, Movie.genre)
-        # print(res)
+        # res = Movie.query
+        # db.session.query(User.id, User.name, Group.name.label("grp_name")).join(Group).all()
+        res = db.session.query(Movie.id, Movie.title, Genre.name).join(Genre).join(Director)
         if director_id is not None:
             res = res.filter(Movie.director_id == director_id)
         if genre_id is not None:
@@ -79,10 +80,12 @@ class MoviesView(Resource):
 @movie_ns.route('/<int:uid>')
 class MovieView(Resource):
     def get(self, uid):
-        movie = Movie.query.get(uid)
+        # movie = Movie.query.get(uid)
+        movie = db.session.query(Movie.id, Movie.title, Movie.description, Movie.trailer, Movie.year, Movie.rating,
+                                 Movie.director_id, Genre.name).join(Genre).filter(Movie.id == uid).all()
         if not movie:
             return "", 404
-        return movie_schema.dump(movie)
+        return movie_schema.dump(movie, many=True)
 
     def put(self, uid):
         movie = Movie.query.get(uid)
@@ -94,7 +97,7 @@ class MovieView(Resource):
         movie.trailer = request.json.get("trailer")
         movie.year = request.json.get("year")
         movie.rating = request.json.get("rating")
-        movie.genre_id = request.json.get("genre_id")
+        movie.genre = request.json.get("genre_id")
         movie.director_id = request.json.get("director_id")
         db.session.add(movie)
         db.session.commit()
